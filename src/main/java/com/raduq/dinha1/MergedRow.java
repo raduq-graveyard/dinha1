@@ -1,5 +1,7 @@
 package com.raduq.dinha1;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -8,15 +10,10 @@ import java.util.Objects;
 public class MergedRow {
 
     private String key;
-    private String rowA;
-    private String rowB;
+    private List<String> rows;
 
-    public MergedRow(){}
-
-    public MergedRow(String key, Object rowA, Object rowB) {
-        this.key = key;
-        this.rowA = String.valueOf(rowA);
-        this.rowB = String.valueOf(rowB);
+    public MergedRow(){
+        this.rows = new ArrayList<>();
     }
 
     public String getKey() {
@@ -27,39 +24,29 @@ public class MergedRow {
         this.key = key;
     }
 
-    public String getRowA() {
-        return rowA;
+    public void addRow(String row){
+        this.rows.add(row);
     }
 
-    public void setRowA(String rowA) {
-        this.rowA = rowA;
+    public List<String> getRows() {
+        return rows;
     }
 
-    public String getRowB() {
-        return rowB;
-    }
-
-    public void setRowB(String rowB) {
-        this.rowB = rowB;
+    public void setRows(List<String> rows) {
+        this.rows = rows;
     }
 
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        MergedRow mergedRow = (MergedRow) o;
-        return Objects.equals(key, mergedRow.key) &&
-                Objects.equals(rowA, mergedRow.rowA) &&
-                Objects.equals(rowB, mergedRow.rowB);
+        MergedRow that = (MergedRow) o;
+        return Objects.equals(key, that.key) &&
+                Objects.equals(rows, that.rows);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(key, rowA, rowB);
-    }
-
-    @Override
-    public String toString(){
-        return key + "-> " + rowA + " : " + rowB;
+        return Objects.hash(key, rows);
     }
 }

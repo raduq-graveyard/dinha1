@@ -22,12 +22,10 @@ public class Sheet {
 
     private File file;
     private int keyCel;
-    private int numCel;
 
-    public Sheet(String filepath,int keyCel, int numCel) {
+    public Sheet(String filepath,int keyCel) {
         this.file = read(filepath);
         this.keyCel = keyCel;
-        this.numCel = numCel;
     }
 
     private File read(String filepath) {
@@ -42,10 +40,6 @@ public class Sheet {
         return keyCel;
     }
 
-    public int getNumCel() {
-        return numCel;
-    }
-
     public List<XSSFRow> getRows() throws IOException {
         List<XSSFRow> rows = new ArrayList<>();
         XSSFWorkbook wb = new XSSFWorkbook(new FileInputStream(file));
@@ -57,23 +51,22 @@ public class Sheet {
     }
 
     public List<MergedRow> merge(Sheet another) throws IOException {
-        List<MergedRow> mergedRows = getRows().stream().filter(Objects::nonNull).map(row -> {
-            MergedRow mRow = new MergedRow();
-            Optional<XSSFCell> optKeyCell = Optional.ofNullable(row.getCell(keyCel));
-            optKeyCell.ifPresent(xssfCell -> mRow.setKey(getCellKey(optKeyCell.get()).getKey()));
+        List<MergedRow> mergedRows = getRows().stream().filter(Objects::nonNull).map(rowA -> {
+            MergedRow mergedRow = new MergedRow();
+            Optional<XSSFCell> optKeyCell = Optional.ofNullable(rowA.getCell(keyCel));
+            optKeyCell.ifPresent(xssfCell -> mergedRow.setKey(getCellKey(optKeyCell.get()).getKey()));
 
-            Optional<XSSFCell> optValueCell = Optional.ofNullable(row.getCell(numCel));
-            optValueCell.ifPresent(xssfCell -> mRow.setRowA(getCellValue(optValueCell.get()).getValue()));
-            return mRow;
+            mergeOthers(rowA, mergedRow, getKeyCel());
+            return mergedRow;
         }).collect(Collectors.toList());
 
-        another.getRows().stream().filter(Objects::nonNull).forEach(row -> {
-            Optional<XSSFCell> optValueBCell = Optional.ofNullable(row.getCell(another.getKeyCel()));
-            optValueBCell.ifPresent(xssfCell -> {
-                String aKey = getCellKey(optValueBCell.get()).getKey();
-                for(MergedRow mr : mergedRows){
-                    if(aKey.equalsIgnoreCase(mr.getKey())){
-                        mr.setRowB(getCellValue(row.getCell(another.getNumCel())).getValue());
+        another.getRows().stream().filter(Objects::nonNull).forEach(rowB -> {
+            Optional<XSSFCell> bKeyCell = Optional.ofNullable(rowB.getCell(another.getKeyCel()));
+            bKeyCell.ifPresent(xssfCell -> {
+                CellKey bCellKey = getCellKey(bKeyCell.get());
+                for(MergedRow mergedRow : mergedRows){
+                    if(bCellKey.getKey().equalsIgnoreCase(mergedRow.getKey())){
+                        mergeOthers(rowB,mergedRow,bCellKey.getNum());
                     }
                 }
             });
@@ -81,12 +74,26 @@ public class Sheet {
         return mergedRows;
     }
 
+    private void mergeOthers(XSSFRow row, MergedRow mergedSheet, int celKey) {
+        for(int i=0;i< row.getLastCellNum(); i++){
+            if(celKey == i){
+                continue;
+            }
+            addMergedRow(row,mergedSheet,i);
+        }
+    }
+
+    private void addMergedRow(XSSFRow row, MergedRow mergedSheet, int celNumber){
+        Optional<XSSFCell> optValueCell = Optional.ofNullable(row.getCell(celNumber));
+        optValueCell.ifPresent(xssfCell -> mergedSheet.addRow(getCellValue(optValueCell.get()).getValue()));
+    }
+
     private CellKey getCellKey(XSSFCell cell) {
         if (cell.getCellType() == Cell.CELL_TYPE_NUMERIC) {
-            return new CellKey(cell.getNumericCellValue());
+            return new CellKey(cell.getNumericCellValue(),cell.getColumnIndex());
         }
         if(cell.getCellType() == Cell.CELL_TYPE_STRING) {
-            return new CellKey(cell.getStringCellValue());
+            return new CellKey(cell.getStringCellValue(),cell.getColumnIndex());
         }
         throw new RuntimeException("Tipo incompativel");
     }
