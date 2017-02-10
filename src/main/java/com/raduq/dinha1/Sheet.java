@@ -54,7 +54,11 @@ public class Sheet {
         List<MergedRow> mergedRows = getRows().stream().filter(Objects::nonNull).map(rowA -> {
             MergedRow mergedRow = new MergedRow();
             Optional<XSSFCell> optKeyCell = Optional.ofNullable(rowA.getCell(keyCel));
-            optKeyCell.ifPresent(xssfCell -> mergedRow.setKey(getCellKey(optKeyCell.get()).getKey()));
+            optKeyCell.ifPresent(xssfCell -> {
+                Optional<CellKey> opt = getCellKey(optKeyCell.get());
+                opt.ifPresent(cellKey -> mergedRow.setKey(cellKey.getKey()));
+
+            });
 
             mergeOthers(rowA, mergedRow, getKeyCel());
             return mergedRow;
@@ -63,10 +67,10 @@ public class Sheet {
         another.getRows().stream().filter(Objects::nonNull).forEach(rowB -> {
             Optional<XSSFCell> bKeyCell = Optional.ofNullable(rowB.getCell(another.getKeyCel()));
             bKeyCell.ifPresent(xssfCell -> {
-                CellKey bCellKey = getCellKey(bKeyCell.get());
+                Optional<CellKey> bCellKey = getCellKey(bKeyCell.get());
                 for(MergedRow mergedRow : mergedRows){
-                    if(bCellKey.getKey().equalsIgnoreCase(mergedRow.getKey())){
-                        mergeOthers(rowB,mergedRow,bCellKey.getNum());
+                    if(bCellKey.isPresent() && bCellKey.get().getKey().equalsIgnoreCase(mergedRow.getKey())){
+                        mergeOthers(rowB,mergedRow,bCellKey.get().getNum());
                     }
                 }
             });
@@ -85,26 +89,29 @@ public class Sheet {
 
     private void addMergedRow(XSSFRow row, MergedRow mergedSheet, int celNumber){
         Optional<XSSFCell> optValueCell = Optional.ofNullable(row.getCell(celNumber));
-        optValueCell.ifPresent(xssfCell -> mergedSheet.addRow(getCellValue(optValueCell.get()).getValue()));
+        optValueCell.ifPresent(xssfCell -> {
+            Optional<CellValue> opt = getCellValue(optValueCell.get());
+            opt.ifPresent(cellValue -> mergedSheet.addRow(cellValue.getValue()));
+        });
     }
 
-    private CellKey getCellKey(XSSFCell cell) {
+    private Optional<CellKey> getCellKey(XSSFCell cell) {
         if (cell.getCellType() == Cell.CELL_TYPE_NUMERIC) {
-            return new CellKey(cell.getNumericCellValue(),cell.getColumnIndex());
+            return Optional.of(new CellKey(cell.getNumericCellValue(),cell.getColumnIndex()));
         }
         if(cell.getCellType() == Cell.CELL_TYPE_STRING) {
-            return new CellKey(cell.getStringCellValue(),cell.getColumnIndex());
+            return Optional.of(new CellKey(cell.getStringCellValue(),cell.getColumnIndex()));
         }
-        throw new RuntimeException("Tipo incompativel");
+        return Optional.empty();
     }
 
-    private CellValue getCellValue(XSSFCell cell) {
+    private Optional<CellValue> getCellValue(XSSFCell cell) {
         if (cell.getCellType() == Cell.CELL_TYPE_NUMERIC) {
-            return new CellValue(cell.getNumericCellValue());
+            return Optional.of(new CellValue(cell.getNumericCellValue()));
         }
         if(cell.getCellType() == Cell.CELL_TYPE_STRING) {
-            return new CellValue(cell.getStringCellValue());
+            return Optional.of(new CellValue(cell.getStringCellValue()));
         }
-        throw new RuntimeException("Tipo incompativel");
+        return Optional.empty();
     }
 }
